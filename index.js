@@ -1,8 +1,25 @@
-import { getAssetFromKV, serveSinglePageApp } from '@cloudflare/kv-asset-handler'
+import { getAssetFromKV, mapRequestToAsset } from '@cloudflare/kv-asset-handler'
 
 addEventListener('fetch', event => {
   event.respondWith(handleEvent(event))
 })
+
+function serveSinglePageApp(request) {
+  request = mapRequestToAsset(request)
+
+  var reactRouting = false;
+  try {
+    if (REACT_ROUTING == "true") {
+      reactRouting = true;
+    }
+  } catch {}
+
+  if (request.url.endsWith('.html') && reactRouting) {
+    return new Request(`${new URL(request.url).origin}/index.html`, request)
+  } else {
+    return request
+  }
+}
 
 async function handleEvent(event) {
   const url = new URL(event.request.url)
