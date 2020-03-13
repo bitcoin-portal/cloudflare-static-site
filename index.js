@@ -25,8 +25,9 @@ async function handleEvent(event) {
   const url = new URL(event.request.url)
   let options = { mapRequestToAsset: serveSinglePageApp }
 
+  var response
   try {
-    return await getAssetFromKV(event, options)
+    response = await getAssetFromKV(event, options)
   } catch (e) {
     if (e.status == 404) {
       try {
@@ -34,11 +35,16 @@ async function handleEvent(event) {
           mapRequestToAsset: req => new Request(`${new URL(req.url).origin}/404.html`, req),
         })
 
-        return new Response(notFoundResponse.body, { ...notFoundResponse, status: 404 })
+        response = new Response(notFoundResponse.body, { ...notFoundResponse, status: 404 })
       } catch (e) {
-        return new Response("Not Found", { status: 404 })
+        response = new Response("Not Found", { status: 404 })
       }
+    } else {
+      response = new Response("Internal Error", { status: 500 })
     }
-    return new Response("Internal Error", { status: 500 })
   }
+  try {
+    response.headers.set('Access-Control-Allow-Origin', CORS)
+  } catch {}
+  return response
 }
