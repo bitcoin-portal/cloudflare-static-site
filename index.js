@@ -4,7 +4,14 @@ addEventListener('fetch', event => {
   event.respondWith(handleEvent(event))
 })
 
+function stripQueryString(request) {
+  const parsedUrl = new URL(request.url)
+  parsedUrl.search = ''
+  return new Request(parsedUrl.toString(), request)
+}
+
 function serveSinglePageApp(request) {
+  request = stripQueryString(request)
   request = mapRequestToAsset(request)
 
   var reactRouting = false;
