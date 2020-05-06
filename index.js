@@ -4,6 +4,27 @@ addEventListener('fetch', event => {
   event.respondWith(handleEvent(event))
 })
 
+const redirectMap = new Map()
+try {
+  const redirects = REDIRECT.split(";")
+  for (const redirect of redirects) {
+    const [k, v] = redirect.split("=")
+    redirectMap.set(k, v)
+  }
+} catch {}
+
+function checkRedirect(request) {
+  const url = new URL(request.url).pathname
+  for (const [pattern, redirectUrl] of redirectMap) {
+    if (url.match(pattern)) {
+      const response = new Response(null, { status: 302 })
+      response.headers.set('Location', redirectUrl)
+      return response
+    }
+  }
+  return null
+}
+
 function stripQueryString(request) {
   const parsedUrl = new URL(request.url)
   parsedUrl.search = ''
@@ -29,7 +50,11 @@ function serveSinglePageApp(request) {
 }
 
 async function handleEvent(event) {
-  const url = new URL(event.request.url)
+  const redirect = checkRedirect(event.request)
+  if (redirect != null) {
+    return redirect
+  }
+
   let options = { mapRequestToAsset: serveSinglePageApp }
 
   var response
