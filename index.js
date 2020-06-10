@@ -4,14 +4,31 @@ addEventListener('fetch', event => {
   event.respondWith(handleEvent(event))
 })
 
-const redirectMap = new Map()
-try {
-  const redirects = REDIRECT.split(";")
-  for (const redirect of redirects) {
-    const [k, v] = redirect.split("=")
-    redirectMap.set(k, v)
+var redirectMap = null
+async function parseRedirects(event) {
+  if (redirectMap != null) {
+    return
   }
-} catch {}
+  redirectMap = new Map()
+  try {
+    const redirects = REDIRECT
+    for (const redirect of redirects) {
+      const [k, v] = redirect.split("=")
+      redirectMap.set(k, v)
+    }
+  } catch {}
+
+  try {
+    let redirectsResponse = await getAssetFromKV(event, {
+      mapRequestToAsset: req => new Request(`${new URL(req.url).origin}/redirects`, req)
+    })
+    const redirects = (await redirectsResponse.text()).split("\n")
+    for (const redirect of redirects) {
+      const [k, v] = redirect.split("=")
+      redirectMap.set(k, v)
+    }
+  } catch {}
+}
 
 function checkRedirect(request) {
   const url = new URL(request.url).pathname
@@ -50,6 +67,7 @@ function serveSinglePageApp(request) {
 }
 
 async function handleEvent(event) {
+  await parseRedirects(event)
   const redirect = checkRedirect(event.request)
   if (redirect != null) {
     return redirect
