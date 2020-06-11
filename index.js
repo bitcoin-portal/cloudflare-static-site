@@ -11,7 +11,7 @@ async function parseRedirects(event) {
   }
   redirectMap = new Map()
   try {
-    const redirects = REDIRECT
+    const redirects = REDIRECT.split(";")
     for (const redirect of redirects) {
       const [k, v] = redirect.split("=")
       redirectMap.set(k, v)
