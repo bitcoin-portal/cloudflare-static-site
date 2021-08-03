@@ -75,6 +75,12 @@ async function handleEvent(event) {
 
   let options = { mapRequestToAsset: serveSinglePageApp }
 
+  if (url.pathname.match(/json$/)) {
+    options.cacheControl = {
+      browserTTL: 1,
+    };
+  }
+
   var response
   try {
     response = await getAssetFromKV(event, options)
