@@ -69,6 +69,8 @@ function serveSinglePageApp(request) {
 async function handleEvent(event) {
   await parseRedirects(event)
   const redirect = checkRedirect(event.request)
+  const url = new URL(event.request.url);
+
   if (redirect != null) {
     return redirect
   }
