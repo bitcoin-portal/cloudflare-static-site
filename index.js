@@ -69,11 +69,19 @@ function serveSinglePageApp(request) {
 async function handleEvent(event) {
   await parseRedirects(event)
   const redirect = checkRedirect(event.request)
+  const url = new URL(event.request.url);
+
   if (redirect != null) {
     return redirect
   }
 
   let options = { mapRequestToAsset: serveSinglePageApp }
+
+  if (url.pathname.match(/json$/)) {
+    options.cacheControl = {
+      browserTTL: 1,
+    };
+  }
 
   var response
   try {
