@@ -60,6 +60,16 @@ function serveSinglePageApp(request) {
   } catch {}
 
   if (request.url.endsWith('.html') && reactRouting) {
+    const url = new URL(request.url);
+    const { origin, pathname, search } = url;
+    const trailingSlash = pathname.endsWith('/');
+  
+    if (!trailingSlash) {
+      const destinationURL = `${origin}${pathname}/${search}`;
+
+      return Response.redirect(destinationURL, 301);
+    }
+
     return new Request(`${new URL(request.url).origin}/index.html`, request)
   } else {
     return request
