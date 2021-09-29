@@ -61,11 +61,11 @@ function serveSinglePageApp(request) {
 
   if (request.url.endsWith('.html') && reactRouting) {
     const url = new URL(request.url);
-    const { origin, pathname, search } = url;
+    const { href, pathname } = url;
     const trailingSlash = pathname.endsWith('/');
   
     if (!trailingSlash) {
-      const destinationURL = `${origin}${pathname}/${search}`;
+      const destinationURL = href.replace(pathname, `${pathname}/`);
 
       return Response.redirect(destinationURL, 301);
     }
