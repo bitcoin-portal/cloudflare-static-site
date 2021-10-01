@@ -52,16 +52,6 @@ function serveSinglePageApp(request) {
   request = stripQueryString(request)
   request = mapRequestToAsset(request)
 
-  const url = new URL(request.url);
-  const { href, pathname } = url;
-  const trailingSlash = pathname.endsWith('/');
-
-  if (!trailingSlash) {
-    const destinationURL = href.replace(pathname, `${pathname}/`);
-
-    return Response.redirect(destinationURL, 301);
-  }
-
   var reactRouting = false;
   try {
     if (REACT_ROUTING == "true") {
