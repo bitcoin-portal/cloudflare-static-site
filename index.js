@@ -52,16 +52,6 @@ function serveSinglePageApp(request) {
   request = stripQueryString(request)
   request = mapRequestToAsset(request)
 
-  const url = new URL(request.url);
-  const { href, pathname } = url;
-  const trailingSlash = pathname.endsWith('/');
-
-  if (!trailingSlash) {
-    const destinationURL = href.replace(pathname, `${pathname}/`);
-
-    return Response.redirect(destinationURL, 301);
-  }
-
   var reactRouting = false;
   try {
     if (REACT_ROUTING == "true") {
@@ -81,6 +71,15 @@ async function handleEvent(event) {
   await parseRedirects(event)
   const redirect = checkRedirect(event.request)
   const url = new URL(event.request.url);
+
+  const { href, pathname } = url;
+  const trailingSlash = pathname.endsWith('/');
+
+  if (!trailingSlash) {
+    const destinationURL = href.replace(pathname, `${pathname}/`);
+
+    return Response.redirect(destinationURL, 301);
+  }
 
   if (redirect != null) {
     return redirect
