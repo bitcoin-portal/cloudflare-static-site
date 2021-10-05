@@ -73,9 +73,9 @@ async function handleEvent(event) {
   const url = new URL(event.request.url);
 
   const { href, pathname } = url;
-  const trailingSlash = pathname.endsWith('/') && pathname !== '/';
+  const trailingSlash = pathname.endsWith('/');
 
-  if (!trailingSlash && !pathname.includes('.')) {
+  if (!trailingSlash) {
     const destinationURL = href.replace(pathname, `${pathname}/`);
 
     return Response.redirect(destinationURL, 301);
