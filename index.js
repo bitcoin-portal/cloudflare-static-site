@@ -31,23 +31,13 @@ async function parseRedirects(event) {
 }
 
 function checkRedirect(request) {
-  const url = new URL(request.url)
-  const { href, pathname } = url;
-  const trailingSlash = pathname.endsWith('/') && pathname !== '/';
-
+  const url = new URL(request.url).pathname
   for (const [pattern, redirectUrl] of redirectMap) {
-    if (pathname.match(pattern)) {
+    if (url.match(pattern)) {
       const response = new Response(null, { status: 302 })
       response.headers.set('Location', redirectUrl)
       return response
     }
-  }
-
-  if (!trailingSlash && !pathname.includes('.')) {
-    const destinationURL = href.replace(pathname, `${pathname}/`)
-    const response = new Response(null, { status: 301 })
-    response.headers.set('Location', destinationUrl)
-    return response
   }
   return null
 }
