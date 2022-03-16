@@ -1,5 +1,51 @@
 import { getAssetFromKV, mapRequestToAsset } from '@cloudflare/kv-asset-handler'
 
+const NAME = "test@bitcoin.com"
+const PASS = "nakamoto21"
+
+const CREDENTIALS_REGEXP = /^ *(?:[Bb][Aa][Ss][Ii][Cc]) +([A-Za-z0-9._~+/-]+=*) *$/
+const USER_PASS_REGEXP = /^([^:]*):(.*)$/
+
+const Credentials = function(name, pass) {
+  this.name = name
+  this.pass = pass
+}
+
+const parseAuthHeader = function(string) {
+  if (typeof string !== 'string') {
+    return undefined
+  }
+
+  // parse header
+  const match = CREDENTIALS_REGEXP.exec(string)
+
+  if (!match) {
+    return undefined
+  }
+
+  // decode user pass
+  const userPass = USER_PASS_REGEXP.exec(atob(match[1]))
+
+  if (!userPass) {
+    return undefined
+  }
+
+  // return credentials object
+  return new Credentials(userPass[1], userPass[2])
+}
+
+const unauthorizedResponse = function(body) {
+  return new Response(
+    body, {
+      status: 401,
+      headers: {
+        "WWW-Authenticate": 'Basic realm="User Visible Realm"'
+      }
+    }
+  )
+}
+
+
 addEventListener('fetch', event => {
   event.respondWith(handleEvent(event))
 })
@@ -85,7 +131,16 @@ async function handleEvent(event) {
 
   var response
   try {
-    response = await getAssetFromKV(event, options)
+    if (url.hostname === 'verse.bitcoin.com') {
+      const credentials = parseAuthHeader(request.headers.get("Authorization"))
+      if ( !credentials || credentials.name !== NAME ||  credentials.pass !== PASS) {
+        response = unauthorizedResponse("Unauthorized")
+      } else {
+        response = fetch(request)
+      }
+    } else {
+      response = await getAssetFromKV(event, options)
+    }
   } catch (e) {
     if (e.status == 404) {
       try {
