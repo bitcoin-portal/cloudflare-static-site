@@ -33,7 +33,7 @@ async function parseRedirects(event) {
 function checkRedirect(request) {
   const url = new URL(request.url).pathname
   for (const [pattern, redirectUrl] of redirectMap) {
-    if (url.match(pattern) && pattern != "") {
+    if (pattern != "" && pattern.length > 0 && url.match(pattern)) {
       const response = new Response(null, { status: 302 })
       response.headers.set('Location', redirectUrl)
       return response
