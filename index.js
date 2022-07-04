@@ -192,5 +192,5 @@ async function handleEvent(event) {
   try {
     response.headers.set("Access-Control-Allow-Origin", CORS);
   } catch {}
-  return addHeaders(response);
+  return await addHeaders(response);
 }
