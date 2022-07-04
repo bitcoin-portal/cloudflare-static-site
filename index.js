@@ -70,7 +70,7 @@ function serveSinglePageApp(request) {
   }
 }
 
-async function addHeaders(response) {
+async function addHeaders(req, response) {
   const DEFAULT_SECURITY_HEADERS = {
     /*
       Secure your application with Content-Security-Policy headers.
@@ -192,5 +192,5 @@ async function handleEvent(event) {
   try {
     response.headers.set("Access-Control-Allow-Origin", CORS);
   } catch {}
-  return await addHeaders(response);
+  return await addHeaders(event.request, response);
 }
