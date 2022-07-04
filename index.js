@@ -70,7 +70,7 @@ function serveSinglePageApp(request) {
   }
 }
 
-async function addHeaders(req) {
+async function addHeaders(response) {
   const DEFAULT_SECURITY_HEADERS = {
     /*
       Secure your application with Content-Security-Policy headers.
@@ -113,7 +113,7 @@ async function addHeaders(req) {
     "X-Powered-By",
     "X-AspNet-Version",
   ];
-  let response = await fetch(req);
+  // let response = await fetch(req);
   let newHeaders = new Headers(response.headers);
 
   const tlsVersion = req.cf.tlsVersion;
