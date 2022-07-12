@@ -163,9 +163,9 @@ function check404(url, req) {
 
 async function handleEvent(event) {
   await parseRedirects(event);
-  const redirect = checkRedirect(event.request);
-  const url = new URL(event.request.url);
   const req = event.request;
+  const redirect = checkRedirect(req);
+  const url = new URL(event.request.url);
   const options = check404(url, req);
 
   if (redirect != null) {
