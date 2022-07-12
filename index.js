@@ -7,6 +7,8 @@ addEventListener("fetch", (event) => {
   event.respondWith(handleEvent(event));
 });
 
+//reverting for now
+
 var redirectMap = null;
 async function parseRedirects(event) {
   if (redirectMap != null) {
