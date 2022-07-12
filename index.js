@@ -150,21 +150,21 @@ async function addHeaders(req, response) {
   }
 }
 
-function check404() {
-  if (url.includes("404" || "temporarily-offline")) {
-    return {
-      mapRequestToAsset: (req) => {
-        new Request(req.url, req, { status: 404 });
-      },
-    };
-  }
-  return options;
-}
-
 async function handleEvent(event) {
   await parseRedirects(event);
   const redirect = checkRedirect(event.request);
   const url = new URL(event.request.url);
+
+  function check404() {
+    if (url.includes("404" || "temporarily-offline")) {
+      return {
+        mapRequestToAsset: (req) => {
+          new Request(req.url, req, { status: 404 });
+        },
+      };
+    }
+    return options;
+  }
 
   if (redirect != null) {
     return redirect;
