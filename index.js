@@ -2,11 +2,9 @@ import {
   getAssetFromKV,
   mapRequestToAsset,
 } from "@cloudflare/kv-asset-handler";
-
 addEventListener("fetch", (event) => {
   event.respondWith(handleEvent(event));
 });
-
 var redirectMap = null;
 async function parseRedirects(event) {
   if (redirectMap != null) {
@@ -20,7 +18,6 @@ async function parseRedirects(event) {
       redirectMap.set(k, v);
     }
   } catch {}
-
   try {
     let redirectsResponse = await getAssetFromKV(event, {
       mapRequestToAsset: (req) =>
@@ -33,7 +30,6 @@ async function parseRedirects(event) {
     }
   } catch {}
 }
-
 function checkRedirect(request) {
   const url = new URL(request.url).pathname;
   for (const [pattern, redirectUrl] of redirectMap) {
@@ -45,24 +41,20 @@ function checkRedirect(request) {
   }
   return null;
 }
-
 function stripQueryString(request) {
   const parsedUrl = new URL(request.url);
   parsedUrl.search = "";
   return new Request(parsedUrl.toString(), request);
 }
-
 function serveSinglePageApp(request) {
   request = stripQueryString(request);
   request = mapRequestToAsset(request);
-
   var reactRouting = false;
   try {
     if (REACT_ROUTING == "true") {
       reactRouting = true;
     }
   } catch {}
-
   if (request.url.endsWith(".html") && reactRouting) {
     return new Request(`${new URL(request.url).origin}/index.html`, request);
   } else {
@@ -74,6 +66,21 @@ async function addHeaders(req, response) {
   const DEFAULT_SECURITY_HEADERS = {
     /*
       Secure your application with Content-Security-Policy headers.
+
+    
+          
+            
+    
+
+          
+          
+            
+    
+
+          
+    
+    @@ -192,5 +192,5 @@ async function handleEvent(event) {
+  
       Enabling these headers will permit content from a trusted domain and all its subdomains.
       @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
       "Content-Security-Policy": "default-src 'self' example.com *.example.com",
@@ -115,7 +122,6 @@ async function addHeaders(req, response) {
   ];
   // let response = await fetch(req);
   let newHeaders = new Headers(response.headers);
-
   const tlsVersion = req.cf.tlsVersion;
   // This sets the headers for HTML responses:
   if (
@@ -128,15 +134,12 @@ async function addHeaders(req, response) {
       headers: newHeaders,
     });
   }
-
   Object.keys(DEFAULT_SECURITY_HEADERS).map(function (name) {
     newHeaders.set(name, DEFAULT_SECURITY_HEADERS[name]);
   });
-
   BLOCKED_HEADERS.forEach(function (name) {
     newHeaders.delete(name);
   });
-
   if (tlsVersion !== "TLSv1.2" && tlsVersion !== "TLSv1.3") {
     return new Response("You need to use TLS version 1.2 or higher.", {
       status: 400,
@@ -149,35 +152,20 @@ async function addHeaders(req, response) {
     });
   }
 }
-
-function check404(url, req) {
-  if (url.pathname.includes("404" || "temporarily-offline")) {
-    return {
-      mapRequestToAsset: () => {
-        new Request(url, req, { status: 404 });
-      },
-    };
-  }
-  return { mapRequestToAsset: serveSinglePageApp };
-}
-
 async function handleEvent(event) {
   await parseRedirects(event);
   const req = event.request;
   const redirect = checkRedirect(req);
   const url = new URL(event.request.url);
-  const options = check404(url, req);
-
   if (redirect != null) {
     return redirect;
   }
-
+  let options = { mapRequestToAsset: serveSinglePageApp };
   if (url.pathname.match(/json$/)) {
     options.cacheControl = {
       browserTTL: 1,
     };
   }
-
   var response;
   try {
     response = await getAssetFromKV(event, options);
@@ -190,7 +178,6 @@ async function handleEvent(event) {
               status: 404,
             }),
         });
-
         response = new Response(notFoundResponse.body, {
           ...notFoundResponse,
           status: 404,
