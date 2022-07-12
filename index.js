@@ -23,8 +23,11 @@ async function parseRedirects(event) {
 
   try {
     let redirectsResponse = await getAssetFromKV(event, {
-      mapRequestToAsset: (req) =>
-        new Request(`${new URL(req.url).origin}/redirects`, req),
+      mapRequestToAsset: () =>
+        new Request(
+          `${new URL(event.request.url).origin}/redirects`,
+          event.request
+        ),
     });
     const redirects = (await redirectsResponse.text()).split("\n");
     for (const redirect of redirects) {
@@ -150,23 +153,25 @@ async function addHeaders(req, response) {
   }
 }
 
-function check404(url, req) {
-  if (url.pathname.includes("404" || "temporarily-offline")) {
-    return {
-      mapRequestToAsset: () => {
-        new Request(url, req, { status: 404 });
-      },
-    };
-  }
-  return { mapRequestToAsset: serveSinglePageApp };
-}
+// function check404(url, req) {
+//   if (url.pathname.includes("404" || "temporarily-offline")) {
+//     return {
+//       mapRequestToAsset: () => {
+//         new Request(url, req, { status: 404 });
+//       },
+//     };
+//   }
+//   return { mapRequestToAsset: serveSinglePageApp };
+// }
 
 async function handleEvent(event) {
   await parseRedirects(event);
   const req = event.request;
   const redirect = checkRedirect(req);
   const url = new URL(event.request.url);
-  const options = check404(url, req);
+  // const options = check404(url, req);
+
+  let options = { mapRequestToAsset: serveSinglePageApp };
 
   if (redirect != null) {
     return redirect;
