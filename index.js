@@ -150,27 +150,27 @@ async function addHeaders(req, response) {
   }
 }
 
+function check404(url, req) {
+  if (url.includes("404" || "temporarily-offline")) {
+    return {
+      mapRequestToAsset: () => {
+        new Request(url, req, { status: 404 });
+      },
+    };
+  }
+  return { mapRequestToAsset: serveSinglePageApp };
+}
+
 async function handleEvent(event) {
   await parseRedirects(event);
   const redirect = checkRedirect(event.request);
   const url = new URL(event.request.url);
-
-  function check404() {
-    if (url.includes("404" || "temporarily-offline")) {
-      return {
-        mapRequestToAsset: (req) => {
-          new Request(req.url, req, { status: 404 });
-        },
-      };
-    }
-    return options;
-  }
+  const req = event.request;
+  const options = check404(url, req);
 
   if (redirect != null) {
     return redirect;
   }
-
-  let options = { mapRequestToAsset: serveSinglePageApp };
 
   if (url.pathname.match(/json$/)) {
     options.cacheControl = {
@@ -180,13 +180,13 @@ async function handleEvent(event) {
 
   var response;
   try {
-    response = await getAssetFromKV(event, check404);
+    response = await getAssetFromKV(event, options);
   } catch (e) {
     if (e.status == 404) {
       try {
         let notFoundResponse = await getAssetFromKV(event, {
-          mapRequestToAsset: (req) =>
-            new Request(`${new URL(req.url).origin}/404.html`, req, {
+          mapRequestToAsset: () =>
+            new Request(`${new URL(url).origin}/404.html`, req, {
               status: 404,
             }),
         });
@@ -205,5 +205,5 @@ async function handleEvent(event) {
   try {
     response.headers.set("Access-Control-Allow-Origin", CORS);
   } catch {}
-  return await addHeaders(event.request, response);
+  return await addHeaders(req, response);
 }
