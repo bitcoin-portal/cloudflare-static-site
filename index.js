@@ -170,9 +170,8 @@ async function handleEvent(event) {
   var response;
   try {
     response = await getAssetFromKV(event, options);
-    if (url.includes("404" || "temporarily-offline")) {
-      response.status.set(404);
-    }
+    // if (url.includes("404" || "temporarily-offline")) {
+    // }
   } catch (e) {
     if (e.status == 404) {
       try {
