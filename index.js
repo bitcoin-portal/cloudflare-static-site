@@ -38,9 +38,9 @@ function checkRedirect(request) {
   const url = new URL(request.url).pathname;
   for (const [pattern, redirectUrl] of redirectMap) {
     if (pattern != "" && pattern.length > 0 && url.match(pattern)) {
-      const response = new Response(null, { status: 302 })
-      response.headers.set('Location', redirectUrl)
-      return response
+      const response = new Response(null, { status: 302 });
+      response.headers.set("Location", redirectUrl);
+      return response;
     }
   }
   return null;
@@ -168,6 +168,15 @@ async function handleEvent(event) {
   }
 
   var response;
+
+  if (url.includes("404")) {
+    response = new Response("Not Found", { status: 404 });
+  }
+
+  if (url.includes("temporarily-offline")) {
+    response = new Response("Temporarily offline", { status: 404 });
+  }
+
   try {
     response = await getAssetFromKV(event, options);
   } catch (e) {
@@ -175,7 +184,9 @@ async function handleEvent(event) {
       try {
         let notFoundResponse = await getAssetFromKV(event, {
           mapRequestToAsset: (req) =>
-            new Request(`${new URL(req.url).origin}/404.html`, req),
+            new Request(`${new URL(req.url).origin}/404.html`, req, {
+              status: 404,
+            }),
         });
 
         response = new Response(notFoundResponse.body, {
