@@ -33,7 +33,7 @@ async function parseRedirects(event) {
 function checkRedirect(request) {
   const url = new URL(request.url).pathname;
   for (const [pattern, redirectUrl] of redirectMap) {
-    if (url.match(pattern)) {
+    if (pattern != "" && pattern.length > 0 && url.match(pattern)) {
       const response = new Response(null, { status: 302 });
       response.headers.set("Location", redirectUrl);
       return response;
@@ -154,7 +154,8 @@ async function addHeaders(req, response) {
 }
 async function handleEvent(event) {
   await parseRedirects(event);
-  const redirect = checkRedirect(event.request);
+  const req = event.request;
+  const redirect = checkRedirect(req);
   const url = new URL(event.request.url);
   if (redirect != null) {
     return redirect;
@@ -172,8 +173,10 @@ async function handleEvent(event) {
     if (e.status == 404) {
       try {
         let notFoundResponse = await getAssetFromKV(event, {
-          mapRequestToAsset: (req) =>
-            new Request(`${new URL(req.url).origin}/404.html`, req),
+          mapRequestToAsset: () =>
+            new Request(`${new URL(url).origin}/404.html`, req, {
+              status: 404,
+            }),
         });
         response = new Response(notFoundResponse.body, {
           ...notFoundResponse,
@@ -189,5 +192,5 @@ async function handleEvent(event) {
   try {
     response.headers.set("Access-Control-Allow-Origin", CORS);
   } catch {}
-  return await addHeaders(event.request, response);
+  return await addHeaders(req, response);
 }
