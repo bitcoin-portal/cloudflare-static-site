@@ -151,7 +151,7 @@ async function addHeaders(req, response) {
 }
 
 function check404(url, req) {
-  if (url.includes("404" || "temporarily-offline")) {
+  if (url.pathname.includes("404" || "temporarily-offline")) {
     return {
       mapRequestToAsset: () => {
         new Request(url, req, { status: 404 });
