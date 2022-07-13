@@ -17,7 +17,7 @@
   "scripts": {
     "build": "webpack",
     "build:watch": "webpack --watch",
-    "preview": "workers-preview < dist/bundle.js"
+    "preview": "yarn build && workers-preview < dist/bundle.js"
   },
   "husky": {
     "hooks": {
