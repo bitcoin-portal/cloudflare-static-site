@@ -8,7 +8,8 @@ export async function addHeaders(req: Request, response: Response) {
   // let response = await fetch(req);
   let newHeaders = new Headers(response.headers);
 
-  const tlsVersion = req.cf.tlsVersion;
+  const tlsVersion = req.cf?.tlsVersion;
+
   // This sets the headers for HTML responses:
   if (
     newHeaders.has("Content-Type") &&
@@ -26,14 +27,19 @@ export async function addHeaders(req: Request, response: Response) {
   });
 
   Object.keys(CORS_HEADERS).map(function (name) {
-    newHeaders.set(name, CORS);
+    newHeaders.set(name, "*");
+    // newHeaders.set(name, CORS);
   });
 
   BLOCKED_HEADERS.forEach(function (name) {
     newHeaders.delete(name);
   });
 
-  if (tlsVersion !== "TLSv1.2" && tlsVersion !== "TLSv1.3") {
+  if (
+    tlsVersion !== undefined &&
+    tlsVersion !== "TLSv1.2" &&
+    tlsVersion !== "TLSv1.3"
+  ) {
     return new Response("You need to use TLS version 1.2 or higher.", {
       status: 400,
     });

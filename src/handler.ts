@@ -12,11 +12,11 @@ function serveSinglePageApp(request: Request) {
   request = mapRequestToAsset(request);
 
   var reactRouting = false;
-  try {
-    if (REACT_ROUTING == "true") {
-      reactRouting = true;
-    }
-  } catch {}
+  // try {
+  //   if (REACT_ROUTING == "true") {
+  //     reactRouting = true;
+  //   }
+  // } catch {}
 
   if (request.url.endsWith(".html") && reactRouting) {
     return new Request(`${new URL(request.url).origin}/index.html`, request);
@@ -26,6 +26,7 @@ function serveSinglePageApp(request: Request) {
 }
 
 export async function handleEvent(event: FetchEvent) {
+  console.log("this is the event", event);
   await parseRedirects(event);
   const req = event.request;
   const redirect = checkRedirect(req);
@@ -44,24 +45,24 @@ export async function handleEvent(event: FetchEvent) {
 
   var response: Response | null;
   try {
+    if (is404) {
+      console.log("404 working?", is404);
+      let notFoundResponse = await getAssetFromKV(event, {
+        mapRequestToAsset: () => new Request(url.origin, req),
+      });
+      response = new Response(notFoundResponse.body, {
+        ...notFoundResponse,
+        status: 404,
+      });
+    }
     response = await getAssetFromKV(event, options);
+    console.log("trying the response:", response);
   } catch (e) {
+    console.log("had an e.status error");
     if (e.status == 404) {
       try {
         let notFoundResponse = await getAssetFromKV(event, {
           mapRequestToAsset: () => new Request(`${url.origin}/404.html`, req),
-        });
-        response = new Response(notFoundResponse.body, {
-          ...notFoundResponse,
-          status: 404,
-        });
-      } catch (e) {
-        response = new Response("Not Found", { status: 404 });
-      }
-    } else if (is404) {
-      try {
-        let notFoundResponse = await getAssetFromKV(event, {
-          mapRequestToAsset: () => new Request(url.origin, req),
         });
         response = new Response(notFoundResponse.body, {
           ...notFoundResponse,
