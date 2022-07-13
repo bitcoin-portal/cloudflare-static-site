@@ -28,7 +28,7 @@ export async function addHeaders(req: Request, response: Response) {
   });
 
   Object.keys(CORS_HEADERS).map(function (name) {
-    newHeaders.set(name, CORS_HEADERS[name]);
+    newHeaders.set(name, CORS);
   });
 
   BLOCKED_HEADERS.forEach(function (name) {

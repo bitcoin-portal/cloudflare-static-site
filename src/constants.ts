@@ -42,4 +42,4 @@ export const BLOCKED_HEADERS = [
   "X-AspNet-Version",
 ];
 
-export const CORS_HEADERS = { "Access-Control-Allow-Origin": "*" };
+export const CORS_HEADERS = { "Access-Control-Allow-Origin": null };
