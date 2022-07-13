@@ -1,14 +1,9 @@
 {
     "compilerOptions": {
       "module": "commonjs",
-      "target": "esnext",
-      "lib": ["es2015", "webworker"],
+      "target": "ES2020",
+      "lib": ["ES2020"],
       "types": ["@cloudflare/workers-types"],
-      "jsx": "react",
-      "noImplicitAny": true,
-      "preserveConstEnums": true,
-      "outDir": "./dist",
-      "moduleResolution": "node"
     },
-    "include": ["src/*.ts", "src/**/*.ts", "src/*.tsx", "src/**/*.tsx"]
+    "include": ["src/**/*"]
 }
