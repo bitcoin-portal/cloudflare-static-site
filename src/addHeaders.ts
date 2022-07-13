@@ -1,5 +1,3 @@
-import { Request } from "@cloudflare/workers-types";
-
 import {
   DEFAULT_SECURITY_HEADERS,
   BLOCKED_HEADERS,
@@ -23,7 +21,7 @@ export async function addHeaders(req: Request, response: Response) {
     });
   }
 
-  Object.keys(DEFAULT_SECURITY_HEADERS).map(function (name) {
+  Object.keys(DEFAULT_SECURITY_HEADERS).map(function (name: string) {
     newHeaders.set(name, DEFAULT_SECURITY_HEADERS[name]);
   });
 

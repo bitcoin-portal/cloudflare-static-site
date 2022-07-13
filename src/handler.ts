@@ -1,52 +1,11 @@
 import {
   getAssetFromKV,
   mapRequestToAsset,
+  Options,
 } from "@cloudflare/kv-asset-handler";
-import { Request } from "@cloudflare/workers-types";
 import { addHeaders } from "./addHeaders";
-import { stripQueryString } from "./helpers";
-
-let redirectMap: Map<string, string> | null = null;
-
-async function parseRedirects(event: FetchEvent) {
-  if (redirectMap !== null) return;
-  redirectMap = new Map();
-  try {
-    const redirects = REDIRECT.split(";");
-    for (const redirect of redirects) {
-      const [k, v] = redirect.split("=");
-      redirectMap.set(k, v);
-    }
-  } catch {}
-
-  try {
-    let redirectsResponse = await getAssetFromKV(event, {
-      mapRequestToAsset: () =>
-        new Request(
-          `${new URL(event.request.url).origin}/redirects`,
-          event.request
-        ),
-    });
-    const redirects = (await redirectsResponse.text()).split("\n");
-    for (const redirect of redirects) {
-      const [k, v] = redirect.split("=");
-      redirectMap.set(k, v);
-    }
-  } catch {}
-}
-
-function checkRedirect(request: Request) {
-  const url = new URL(request.url).pathname;
-  if (redirectMap === null) return;
-  for (const [pattern, redirectUrl] of redirectMap) {
-    if (pattern != "" && pattern.length > 0 && url.match(pattern)) {
-      const response = new Response(null, { status: 302 });
-      response.headers.set("Location", redirectUrl);
-      return response;
-    }
-  }
-  return null;
-}
+import { check404, stripQueryString } from "./helpers";
+import { checkRedirect, parseRedirects } from "./redirects";
 
 function serveSinglePageApp(request: Request) {
   request = stripQueryString(request);
@@ -71,31 +30,39 @@ export async function handleEvent(event: FetchEvent) {
   const req = event.request;
   const redirect = checkRedirect(req);
   const url = new URL(event.request.url);
-  // const options = check404(url, req);
+  const is404 = check404(url);
+  const options: Partial<Options> = url.pathname.match(/json$/)
+    ? {
+        mapRequestToAsset: serveSinglePageApp,
+        cacheControl: {
+          browserTTL: 1,
+        },
+      }
+    : { mapRequestToAsset: serveSinglePageApp };
 
-  let options = { mapRequestToAsset: serveSinglePageApp };
+  if (redirect != null) return redirect;
 
-  if (redirect != null) {
-    return redirect;
-  }
-
-  if (url.pathname.match(/json$/)) {
-    options.cacheControl = {
-      browserTTL: 1,
-    };
-  }
-
-  var response;
+  var response: Response | null;
   try {
     response = await getAssetFromKV(event, options);
   } catch (e) {
     if (e.status == 404) {
       try {
         let notFoundResponse = await getAssetFromKV(event, {
-          mapRequestToAsset: () =>
-            new Request(`${new URL(url).origin}/404.html`, req),
+          mapRequestToAsset: () => new Request(`${url.origin}/404.html`, req),
         });
-
+        response = new Response(notFoundResponse.body, {
+          ...notFoundResponse,
+          status: 404,
+        });
+      } catch (e) {
+        response = new Response("Not Found", { status: 404 });
+      }
+    } else if (is404) {
+      try {
+        let notFoundResponse = await getAssetFromKV(event, {
+          mapRequestToAsset: () => new Request(url.origin, req),
+        });
         response = new Response(notFoundResponse.body, {
           ...notFoundResponse,
           status: 404,
