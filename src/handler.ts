@@ -5,7 +5,7 @@ import {
 } from "@cloudflare/kv-asset-handler";
 import { addHeaders } from "./addHeaders";
 import { check404, stripQueryString } from "./helpers";
-import { checkRedirect, parseRedirects } from "./redirects";
+import { redirectedResponse, parseRedirects } from "./redirects";
 
 function serveSinglePageApp(request: Request) {
   request = stripQueryString(request);
@@ -25,11 +25,11 @@ function serveSinglePageApp(request: Request) {
   }
 }
 
-export async function handleEvent(event: FetchEvent) {
+export async function handleEvent(event: FetchEvent): Promise<Response> {
   console.log("this is the event", event);
   await parseRedirects(event);
   const req = event.request;
-  const redirect = checkRedirect(req);
+  // const redirect = checkRedirect(req);
   const url = new URL(event.request.url);
   const is404 = check404(url);
   const options: Partial<Options> = url.pathname.match(/json$/)
@@ -38,43 +38,51 @@ export async function handleEvent(event: FetchEvent) {
         cacheControl: {
           browserTTL: 1,
         },
+        ASSET_NAMESPACE: "www-prod-static",
       }
-    : { mapRequestToAsset: serveSinglePageApp };
+    : {
+        mapRequestToAsset: serveSinglePageApp,
+        ASSET_NAMESPACE: "www-prod-static",
+      };
 
-  if (redirect != null) return redirect;
+  // if (redirect != null) return redirect;
 
-  var response: Response | null;
   try {
     if (is404) {
       let notFoundResponse = await getAssetFromKV(event, {
         mapRequestToAsset: () => new Request(url.origin, req),
       });
-      response = new Response(notFoundResponse.body, {
+      const response = new Response(notFoundResponse.body, {
         ...notFoundResponse,
         status: 404,
       });
       console.log("this is the 404 response:", response);
+      return response;
     } else {
-      response = await getAssetFromKV(event, options);
+      const response = await getAssetFromKV(event, options);
       console.log("this is the try response:", response);
+      return response;
     }
   } catch (e) {
-    console.log("had an e.status error");
     if (e.status == 404) {
       try {
-        let notFoundResponse = await getAssetFromKV(event, {
+        const notFoundResponse = await getAssetFromKV(event, {
           mapRequestToAsset: () => new Request(`${url.origin}/404.html`, req),
         });
-        response = new Response(notFoundResponse.body, {
+        const response = new Response(notFoundResponse.body, {
           ...notFoundResponse,
           status: 404,
         });
+        return response;
       } catch (e) {
-        response = new Response("Not Found", { status: 404 });
+        console.log("this is the error1:", e);
+        const response = new Response("Not Found", { status: 404 });
+        return response;
       }
     } else {
-      response = new Response("Internal Error", { status: 500 });
+      console.log("this is the error2:", e);
+      const response = new Response("Internal Error", { status: 500 });
+      return response;
     }
   }
-  return await addHeaders(req, response);
 }

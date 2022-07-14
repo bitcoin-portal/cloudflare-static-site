@@ -1,25 +1,25 @@
 import { getAssetFromKV } from "@cloudflare/kv-asset-handler";
 
-let redirectMap: Map<string, string> | null = null;
-
-export async function parseRedirects(event: FetchEvent) {
-  if (redirectMap !== null) return;
-  redirectMap = new Map();
-
+export async function parseRedirects(
+  event: FetchEvent
+): Promise<Map<string, string>> {
+  const redirectMap = new Map();
   const REDIRECT =
     "^/wallet-support/$=https://support.bitcoin.com/en/collections/2050805-wallet/;^/miami-conference/?$=https://www.bitcoin.com/events/";
 
   try {
     const redirects = REDIRECT.split(";");
-    for (const redirect of redirects) {
-      const [k, v] = redirect.split("=");
+    redirects.forEach((i) => {
+      const [k, v] = i.split("=");
       redirectMap.set(k, v);
-      console.log("redirects from REDIRECT:", redirect);
-    }
-  } catch {}
+    });
+    return redirectMap;
+  } catch (e) {
+    console.log("Redirect error:", e);
+  }
 
   try {
-    let redirectsResponse = await getAssetFromKV(event, {
+    const redirectsResponse = await getAssetFromKV(event, {
       mapRequestToAsset: () =>
         new Request(
           `${new URL(event.request.url).origin}/redirects`,
@@ -27,25 +27,39 @@ export async function parseRedirects(event: FetchEvent) {
         ),
     });
     const redirects = (await redirectsResponse.text()).split("\n");
-    for (const redirect of redirects) {
-      const [k, v] = redirect.split("=");
+    redirects.forEach((i) => {
+      const [k, v] = i.split("=");
       redirectMap.set(k, v);
-      console.log("redirects:", redirect);
-    }
-  } catch {}
+    });
+    return redirectMap;
+  } catch (e) {
+    console.log("Redirect error:", e);
+  }
 }
 
-export function checkRedirect(request: Request) {
+export function redirectedResponse(
+  request: Request,
+  redirects: Map<string, string>
+): Response | null {
   const url = new URL(request.url).pathname;
   console.log("this is the checkRedirect url", url);
-  if (redirectMap === null) return;
-  for (const [pattern, redirectUrl] of redirectMap) {
-    if (pattern != "" && pattern.length > 0 && url.match(pattern)) {
-      const response = new Response(null, { status: 302 });
-      response.headers.set("Location", redirectUrl);
-      console.log("this is the checkRedirect response", response);
-      return response;
-    }
+  try {
+    redirects.forEach((redirectUrl, pattern) => {
+      console.log("are you working?");
+      console.log("this is the pattern:", pattern);
+      console.log("this is the redirectUrl:", redirectUrl);
+      if (url.match(pattern)) {
+        const response = new Response(null, {
+          status: 302,
+          headers: { Location: redirectUrl },
+        });
+        console.log("this is the checkRedirect response", response);
+        console.log("headers", response.headers.get("Location"));
+        return response;
+      }
+    });
+  } catch (e) {
+    console.log("error:", e);
   }
   return null;
 }
