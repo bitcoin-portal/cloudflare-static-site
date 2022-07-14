@@ -46,7 +46,6 @@ export async function handleEvent(event: FetchEvent) {
   var response: Response | null;
   try {
     if (is404) {
-      console.log("404 working?", is404);
       let notFoundResponse = await getAssetFromKV(event, {
         mapRequestToAsset: () => new Request(url.origin, req),
       });
@@ -54,9 +53,11 @@ export async function handleEvent(event: FetchEvent) {
         ...notFoundResponse,
         status: 404,
       });
+      console.log("this is the 404 response:", response);
+    } else {
+      response = await getAssetFromKV(event, options);
+      console.log("this is the try response:", response);
     }
-    response = await getAssetFromKV(event, options);
-    console.log("trying the response:", response);
   } catch (e) {
     console.log("had an e.status error");
     if (e.status == 404) {

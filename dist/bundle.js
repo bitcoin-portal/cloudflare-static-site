@@ -481,50 +481,6 @@ function serveSinglePageApp(request) {
         return request;
     }
 }
-// let redirectMap: Map<string, string> | null = null;
-// export async function parseRedirects(event: FetchEvent) {
-//   if (redirectMap !== null) return;
-//   redirectMap = new Map();
-//   const REDIRECT =
-//     "^/wallet-support/$=https://support.bitcoin.com/en/collections/2050805-wallet/;^/miami-conference/?$=https://www.bitcoin.com/events/";
-//   try {
-//     const redirects = REDIRECT.split(";");
-//     for (const redirect of redirects) {
-//       const [k, v] = redirect.split("=");
-//       redirectMap.set(k, v);
-//       console.log("redirects from REDIRECT:", redirect);
-//     }
-//   } catch {}
-//   try {
-//     let redirectsResponse = await getAssetFromKV(event, {
-//       mapRequestToAsset: () =>
-//         new Request(
-//           `${new URL(event.request.url).origin}/redirects`,
-//           event.request
-//         ),
-//     });
-//     const redirects = (await redirectsResponse.text()).split("\n");
-//     for (const redirect of redirects) {
-//       const [k, v] = redirect.split("=");
-//       redirectMap.set(k, v);
-//       console.log("redirects:", redirect);
-//     }
-//   } catch {}
-// }
-// export function checkRedirect(request: Request) {
-//   const url = new URL(request.url).pathname;
-//   console.log("this is the checkRedirect url", url);
-//   if (redirectMap === null) return;
-//   for (const [pattern, redirectUrl] of redirectMap) {
-//     if (pattern != "" && pattern.length > 0 && url.match(pattern)) {
-//       const response = new Response(null, { status: 302 });
-//       response.headers.set("Location", redirectUrl);
-//       console.log("this is the checkRedirect response", response);
-//       return response;
-//     }
-//   }
-//   return null;
-// }
 async function handleEvent(event) {
     console.log("this is the event", event);
     await (0, redirects_1.parseRedirects)(event);
@@ -545,7 +501,6 @@ async function handleEvent(event) {
     var response;
     try {
         if (is404) {
-            console.log("404 working?", is404);
             let notFoundResponse = await (0, kv_asset_handler_1.getAssetFromKV)(event, {
                 mapRequestToAsset: () => new Request(url.origin, req),
             });
@@ -553,9 +508,12 @@ async function handleEvent(event) {
                 ...notFoundResponse,
                 status: 404,
             });
+            console.log("this is the 404 response:", response);
         }
-        response = await (0, kv_asset_handler_1.getAssetFromKV)(event, options);
-        console.log("trying the response:", response);
+        else {
+            response = await (0, kv_asset_handler_1.getAssetFromKV)(event, options);
+            console.log("this is the try response:", response);
+        }
     }
     catch (e) {
         console.log("had an e.status error");
@@ -601,9 +559,16 @@ function stripQueryString(request) {
 }
 exports.stripQueryString = stripQueryString;
 function check404(url) {
-    if (url.pathname.includes("404" || 0)) {
+    console.log("404 running?");
+    if (url.pathname.includes("404")) {
+        console.log("404 working?", true);
         return true;
     }
+    else if (url.pathname.includes("temporarily-offline")) {
+        console.log("404 working?", true);
+        return true;
+    }
+    console.log("404 working?", false);
     return false;
 }
 exports.check404 = check404;
