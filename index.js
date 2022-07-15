@@ -72,7 +72,7 @@ async function addHeaders(req, response) {
       Enabling these headers will permit content from a trusted domain and all its subdomains.
       @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
     */
-    "Content-Security-Policy": "frame-ancestors 'self'",
+    "Content-Security-Policy": "frame-ancestors 'self';",
 
     /*
       You can also set Strict-Transport-Security headers.
