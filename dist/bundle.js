@@ -340,6 +340,155 @@ exports.InternalError = InternalError;
 
 /***/ }),
 
+/***/ "./src/constants.ts":
+/*!**************************!*\
+  !*** ./src/constants.ts ***!
+  \**************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CORS_HEADERS = exports.BLOCKED_HEADERS = exports.DEFAULT_SECURITY_HEADERS = void 0;
+exports.DEFAULT_SECURITY_HEADERS = {
+    /*
+          Secure your application with Content-Security-Policy headers.
+          Enabling these headers will permit content from a trusted domain and all its subdomains.
+          @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+          "Content-Security-Policy": "default-src 'self' example.com *.example.com",
+          */
+    /*
+          You can also set Strict-Transport-Security headers.
+          These are not automatically set because your website might get added to Chrome's HSTS preload list.
+          Here's the code if you want to apply it:
+          "Strict-Transport-Security" : "max-age=63072000; includeSubDomains; preload",
+          */
+    /*
+          Permissions-Policy header provides the ability to allow or deny the use of browser features, such as opting out of FLoC - which you can use below:
+          "Permissions-Policy": "interest-cohort=()",
+          */
+    /*
+          X-XSS-Protection header prevents a page from loading if an XSS attack is detected.
+          @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+          */
+    "X-XSS-Protection": "0",
+    /*
+          X-Frame-Options header prevents click-jacking attacks.
+          @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+          */
+    "X-Frame-Options": "DENY",
+    /*
+          X-Content-Type-Options header prevents MIME-sniffing.
+          @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+          */
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Cross-Origin-Embedder-Policy": 'require-corp; report-to="default";',
+    "Cross-Origin-Opener-Policy": 'same-site; report-to="default";',
+    "Cross-Origin-Resource-Policy": "same-site",
+};
+exports.BLOCKED_HEADERS = [
+    "Public-Key-Pins",
+    "X-Powered-By",
+    "X-AspNet-Version",
+];
+exports.CORS_HEADERS = { "Access-Control-Allow-Origin": null };
+
+
+/***/ }),
+
+/***/ "./src/getHeaders.ts":
+/*!***************************!*\
+  !*** ./src/getHeaders.ts ***!
+  \***************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getHeaders = void 0;
+const constants_1 = __webpack_require__(/*! ./constants */ "./src/constants.ts");
+function getHeaders(req) {
+    // let response = await fetch(req);
+    let newHeaders = new Headers();
+    // This sets the headers for HTML responses:
+    if (newHeaders.has("Content-Type") &&
+        !newHeaders.get("Content-Type")?.includes("text/html")) {
+        return newHeaders;
+    }
+    Object.keys(constants_1.DEFAULT_SECURITY_HEADERS).map(function (name) {
+        newHeaders.set(name, constants_1.DEFAULT_SECURITY_HEADERS[name]);
+    });
+    Object.keys(constants_1.CORS_HEADERS).map(function (name) {
+        newHeaders.set(name, "*");
+        // newHeaders.set(name, CORS);
+    });
+    constants_1.BLOCKED_HEADERS.forEach(function (name) {
+        newHeaders.delete(name);
+    });
+    return newHeaders;
+}
+exports.getHeaders = getHeaders;
+
+
+/***/ }),
+
+/***/ "./src/helpers.ts":
+/*!************************!*\
+  !*** ./src/helpers.ts ***!
+  \************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkTlsVersion = exports.check404 = exports.stripQueryString = void 0;
+const kv_asset_handler_1 = __webpack_require__(/*! @cloudflare/kv-asset-handler */ "./node_modules/@cloudflare/kv-asset-handler/dist/index.js");
+function stripQueryString(request) {
+    const parsedUrl = new URL(request.url);
+    parsedUrl.search = "";
+    return new Request(parsedUrl.toString(), request);
+}
+exports.stripQueryString = stripQueryString;
+async function check404(event) {
+    const url = new URL(event.request.url);
+    console.log("404 running?");
+    if (url.pathname.includes("404") ||
+        url.pathname.includes("temporarily-offline")) {
+        try {
+            const notFoundResponse = await (0, kv_asset_handler_1.getAssetFromKV)(event, {
+                mapRequestToAsset: () => new Request(url.origin, event.request),
+            });
+            const response = new Response(notFoundResponse.body, {
+                ...notFoundResponse,
+                status: 404,
+            });
+            console.log("this is the 404 response:", response);
+            return response;
+        }
+        catch (e) {
+            console.log("Error:", e);
+        }
+        return null;
+    }
+}
+exports.check404 = check404;
+function checkTlsVersion(request) {
+    const tlsVersion = request.cf?.tlsVersion;
+    if (tlsVersion !== undefined &&
+        tlsVersion !== "TLSv1.2" &&
+        tlsVersion !== "TLSv1.3") {
+        return new Response("You need to use TLS version 1.2 or higher.", {
+            status: 400,
+        });
+    }
+    return null;
+}
+exports.checkTlsVersion = checkTlsVersion;
+
+
+/***/ }),
+
 /***/ "./src/newHandler.ts":
 /*!***************************!*\
   !*** ./src/newHandler.ts ***!
@@ -351,18 +500,32 @@ exports.InternalError = InternalError;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.handleRequest = void 0;
 const redirects_1 = __webpack_require__(/*! ./redirects */ "./src/redirects.ts");
+const getHeaders_1 = __webpack_require__(/*! ./getHeaders */ "./src/getHeaders.ts");
+const helpers_1 = __webpack_require__(/*! ./helpers */ "./src/helpers.ts");
 async function handleRequest(event) {
     const req = event.request;
     const redirects = await (0, redirects_1.parseRedirects)(event);
-    console.log(redirects);
+    const headers = (0, getHeaders_1.getHeaders)(req);
+    const tlsVersion = (0, helpers_1.checkTlsVersion)(req);
+    const is404 = (0, helpers_1.check404)(event);
+    // check for redirects and serve redirect response
     if (redirects !== null) {
         const redirect = (0, redirects_1.redirectedResponse)(req, redirects);
-        console.log("what is redirect", redirect);
+        // console.log("what is redirect", redirect);
         if (redirect !== null) {
-            return redirect;
+            const response = new Response(redirect.body);
+            return response;
         }
     }
-    const response = new Response("Response", req);
+    // check user has TLS version 1.2 or higher and serve error response
+    if (tlsVersion !== null) {
+        return tlsVersion;
+    }
+    // check for 404 or temporarily offline
+    //   if (is404 !== null) {
+    //     return is404;
+    //   }
+    const response = new Response(req.url, { headers: headers });
     return response;
 }
 exports.handleRequest = handleRequest;
@@ -413,23 +576,17 @@ async function parseRedirects(event) {
 exports.parseRedirects = parseRedirects;
 function redirectedResponse(request, redirects) {
     const url = new URL(request.url).pathname;
-    console.log("this is the checkRedirect url", url);
+    //   console.log("this is the checkRedirect url", url);
     try {
-        redirects.forEach((redirectUrl, pattern) => {
-            console.log("are you working?");
-            console.log("this is the pattern:", pattern);
-            console.log("this is the redirectUrl:", redirectUrl);
+        for (const [pattern, redirectUrl] of redirects) {
             if (url.match(pattern)) {
                 const response = new Response(null, {
                     status: 302,
-                    headers: { Location: redirectUrl },
                 });
-                // response.headers.set("Location", redirectUrl);
-                console.log("this is the checkRedirect response", response);
-                console.log("headers", response.headers.get("Location"));
+                response.headers.set("Location", redirectUrl);
                 return response;
             }
-        });
+        }
     }
     catch (e) {
         console.log("error:", e);

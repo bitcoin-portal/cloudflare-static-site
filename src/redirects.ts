@@ -42,22 +42,17 @@ export function redirectedResponse(
   redirects: Map<string, string>
 ): Response | null {
   const url = new URL(request.url).pathname;
-  console.log("this is the checkRedirect url", url);
+  //   console.log("this is the checkRedirect url", url);
   try {
-    redirects.forEach((redirectUrl, pattern) => {
-      console.log("are you working?");
-      console.log("this is the pattern:", pattern);
-      console.log("this is the redirectUrl:", redirectUrl);
+    for (const [pattern, redirectUrl] of redirects) {
       if (url.match(pattern)) {
         const response = new Response(null, {
           status: 302,
-          headers: { Location: redirectUrl },
         });
-        console.log("this is the checkRedirect response", response);
-        console.log("headers", response.headers.get("Location"));
+        response.headers.set("Location", redirectUrl);
         return response;
       }
-    });
+    }
   } catch (e) {
     console.log("error:", e);
   }
