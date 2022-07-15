@@ -355,8 +355,8 @@ exports.DEFAULT_SECURITY_HEADERS = {
           Secure your application with Content-Security-Policy headers.
           Enabling these headers will permit content from a trusted domain and all its subdomains.
           @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
-          "Content-Security-Policy": "default-src 'self' example.com *.example.com",
           */
+    "Content-Security-Policy": "frame-ancestors 'self';",
     /*
           You can also set Strict-Transport-Security headers.
           These are not automatically set because your website might get added to Chrome's HSTS preload list.
@@ -499,15 +499,18 @@ exports.checkTlsVersion = checkTlsVersion;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.handleRequest = void 0;
+const kv_asset_handler_1 = __webpack_require__(/*! @cloudflare/kv-asset-handler */ "./node_modules/@cloudflare/kv-asset-handler/dist/index.js");
 const redirects_1 = __webpack_require__(/*! ./redirects */ "./src/redirects.ts");
 const getHeaders_1 = __webpack_require__(/*! ./getHeaders */ "./src/getHeaders.ts");
+const serveSinglePageApp_1 = __webpack_require__(/*! ./serveSinglePageApp */ "./src/serveSinglePageApp.ts");
 const helpers_1 = __webpack_require__(/*! ./helpers */ "./src/helpers.ts");
 async function handleRequest(event) {
     const req = event.request;
     const redirects = await (0, redirects_1.parseRedirects)(event);
     const headers = (0, getHeaders_1.getHeaders)(req);
     const tlsVersion = (0, helpers_1.checkTlsVersion)(req);
-    const is404 = (0, helpers_1.check404)(event);
+    const url = new URL(event.request.url);
+    // const is404 = check404(event);
     // check for redirects and serve redirect response
     if (redirects !== null) {
         const redirect = (0, redirects_1.redirectedResponse)(req, redirects);
@@ -521,12 +524,42 @@ async function handleRequest(event) {
     if (tlsVersion !== null) {
         return tlsVersion;
     }
+    const options = url.pathname.match(/json$/)
+        ? {
+            mapRequestToAsset: serveSinglePageApp_1.serveSinglePageApp,
+            cacheControl: {
+                browserTTL: 1,
+            },
+            ASSET_NAMESPACE: "www-prod-static",
+        }
+        : {
+            mapRequestToAsset: serveSinglePageApp_1.serveSinglePageApp,
+            ASSET_NAMESPACE: "www-prod-static",
+        };
     // check for 404 or temporarily offline
     //   if (is404 !== null) {
     //     return is404;
     //   }
-    const response = new Response(req.url, { headers: headers });
-    return response;
+    try {
+        const response = await (0, kv_asset_handler_1.getAssetFromKV)(event, options);
+        return response;
+    }
+    catch {
+        try {
+            let notFoundResponse = await (0, kv_asset_handler_1.getAssetFromKV)(event, {
+                mapRequestToAsset: (req) => new Request(`${new URL(req.url).origin}/404.html`, req),
+            });
+            return new Response(notFoundResponse.body, {
+                ...notFoundResponse,
+                status: 404,
+            });
+        }
+        catch (e) {
+            console.log("Error:", e);
+        }
+    }
+    // const response = new Response(req.url, { headers: headers });
+    // return response;
 }
 exports.handleRequest = handleRequest;
 
@@ -594,6 +627,44 @@ function redirectedResponse(request, redirects) {
     return null;
 }
 exports.redirectedResponse = redirectedResponse;
+
+
+/***/ }),
+
+/***/ "./src/serveSinglePageApp.ts":
+/*!***********************************!*\
+  !*** ./src/serveSinglePageApp.ts ***!
+  \***********************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.serveSinglePageApp = void 0;
+const kv_asset_handler_1 = __webpack_require__(/*! @cloudflare/kv-asset-handler */ "./node_modules/@cloudflare/kv-asset-handler/dist/index.js");
+const helpers_1 = __webpack_require__(/*! ./helpers */ "./src/helpers.ts");
+function serveSinglePageApp(request) {
+    const strippedRequest = (0, helpers_1.stripQueryString)(request);
+    const mappedRequest = (0, kv_asset_handler_1.mapRequestToAsset)(strippedRequest);
+    const REACT_ROUTING = "true";
+    var reactRouting = false;
+    try {
+        if (REACT_ROUTING == "true") {
+            reactRouting = true;
+        }
+    }
+    catch (e) {
+        console.log("Error:", e);
+    }
+    if (mappedRequest.url.endsWith(".html") && reactRouting) {
+        const request = new Request(`${new URL(mappedRequest.url).origin}/index.html`, mappedRequest);
+        return request;
+    }
+    else {
+        return request;
+    }
+}
+exports.serveSinglePageApp = serveSinglePageApp;
 
 
 /***/ }),

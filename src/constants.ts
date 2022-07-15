@@ -3,8 +3,9 @@ export const DEFAULT_SECURITY_HEADERS = {
         Secure your application with Content-Security-Policy headers.
         Enabling these headers will permit content from a trusted domain and all its subdomains.
         @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
-        "Content-Security-Policy": "default-src 'self' example.com *.example.com",
         */
+  "Content-Security-Policy": "frame-ancestors 'self';",
+
   /*
         You can also set Strict-Transport-Security headers.
         These are not automatically set because your website might get added to Chrome's HSTS preload list.
