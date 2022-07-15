@@ -65,26 +65,15 @@ function serveSinglePageApp(request) {
 async function addHeaders(req, response) {
   const DEFAULT_SECURITY_HEADERS = {
     /*
-      Secure your application with Content-Security-Policy headers.
-
-    
-          
-            
-    
-
-          
-          
-            
-    
-
-          
+      Secure your application with Content-Security-Policy headers.       
     
     @@ -192,5 +192,5 @@ async function handleEvent(event) {
   
       Enabling these headers will permit content from a trusted domain and all its subdomains.
       @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
-      "Content-Security-Policy": "default-src 'self' example.com *.example.com",
-      */
+    */
+    "Content-Security-Policy": "frame-ancestors 'self'",
+
     /*
       You can also set Strict-Transport-Security headers.
       These are not automatically set because your website might get added to Chrome's HSTS preload list.
