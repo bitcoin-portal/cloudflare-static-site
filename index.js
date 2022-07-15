@@ -78,11 +78,14 @@ async function addHeaders(req, response) {
       You can also set Strict-Transport-Security headers.
       These are not automatically set because your website might get added to Chrome's HSTS preload list.
       Here's the code if you want to apply it:
-      "Strict-Transport-Security" : "max-age=63072000; includeSubDomains; preload",
-      */
+    */
+    "Strict-Transport-Security": "max-age=31536000;",
+
     /*
       Permissions-Policy header provides the ability to allow or deny the use of browser features, such as opting out of FLoC - which you can use below:
-      "Permissions-Policy": "interest-cohort=()",
+      
+      //below is possible option for permissions policy. May cause issues with buy so not implemented for now.
+      "Permissions-Policy": "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()",
       */
     /*
       X-XSS-Protection header prevents a page from loading if an XSS attack is detected.
