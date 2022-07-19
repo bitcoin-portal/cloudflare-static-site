@@ -510,11 +510,11 @@ async function handleRequest(event) {
     const headers = (0, getHeaders_1.getHeaders)(req);
     const tlsVersion = (0, helpers_1.checkTlsVersion)(req);
     const url = new URL(event.request.url);
-    // const is404 = check404(event);
+    const is404 = (0, helpers_1.check404)(event);
+    // console.log("these are the headers", headers);
     // check for redirects and serve redirect response
     if (redirects !== null) {
         const redirect = (0, redirects_1.redirectedResponse)(req, redirects);
-        // console.log("what is redirect", redirect);
         if (redirect !== null) {
             const response = new Response(redirect.body);
             return response;
@@ -524,30 +524,36 @@ async function handleRequest(event) {
     if (tlsVersion !== null) {
         return tlsVersion;
     }
+    // check for 404 or temporarily offline and serve response
+    if (is404 !== null) {
+        return is404;
+    }
     const options = url.pathname.match(/json$/)
         ? {
             mapRequestToAsset: serveSinglePageApp_1.serveSinglePageApp,
             cacheControl: {
                 browserTTL: 1,
             },
-            ASSET_NAMESPACE: "www-prod-static",
+            // ASSET_NAMESPACE: MY_FIRST_KV.get(),
         }
         : {
             mapRequestToAsset: serveSinglePageApp_1.serveSinglePageApp,
-            ASSET_NAMESPACE: "www-prod-static",
+            // ASSET_NAMESPACE: name,
         };
-    // check for 404 or temporarily offline
-    //   if (is404 !== null) {
-    //     return is404;
-    //   }
     try {
         const response = await (0, kv_asset_handler_1.getAssetFromKV)(event, options);
+        if (headers !== null) {
+            headers.forEach((name, value) => {
+                response.headers.set(name, value);
+            });
+        }
         return response;
     }
-    catch {
+    catch (e) {
+        // console.log("Error1:", e);
         try {
             let notFoundResponse = await (0, kv_asset_handler_1.getAssetFromKV)(event, {
-                mapRequestToAsset: (req) => new Request(`${new URL(req.url).origin}/404.html`, req),
+                mapRequestToAsset: () => new Request(`${new URL(req.url).origin}/404.html`, req),
             });
             return new Response(notFoundResponse.body, {
                 ...notFoundResponse,
@@ -555,7 +561,8 @@ async function handleRequest(event) {
             });
         }
         catch (e) {
-            console.log("Error:", e);
+            // console.log("Error2:", e);
+            return new Response("Not Found", { status: 404 });
         }
     }
     // const response = new Response(req.url, { headers: headers });

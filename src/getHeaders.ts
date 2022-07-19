@@ -21,8 +21,8 @@ export function getHeaders(req: Request): Headers {
   });
 
   Object.keys(CORS_HEADERS).map(function (name) {
-    newHeaders.set(name, "*");
-    // newHeaders.set(name, CORS);
+    // newHeaders.set(name, "*");
+    newHeaders.set(name, CORS);
   });
 
   BLOCKED_HEADERS.forEach(function (name) {

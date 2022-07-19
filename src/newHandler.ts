@@ -1,9 +1,4 @@
-import {
-  getAssetFromKV,
-  mapRequestToAsset,
-  Options,
-  // serveSinglePageApp,
-} from "@cloudflare/kv-asset-handler";
+import { getAssetFromKV, Options } from "@cloudflare/kv-asset-handler";
 import { redirectedResponse, parseRedirects } from "./redirects";
 import { getHeaders } from "./getHeaders";
 import { serveSinglePageApp } from "./serveSinglePageApp";
@@ -15,12 +10,13 @@ export async function handleRequest(event: FetchEvent): Promise<Response> {
   const headers = getHeaders(req);
   const tlsVersion = checkTlsVersion(req);
   const url = new URL(event.request.url);
-  // const is404 = check404(event);
+  const is404 = check404(event);
+
+  // console.log("these are the headers", headers);
 
   // check for redirects and serve redirect response
   if (redirects !== null) {
     const redirect = redirectedResponse(req, redirects);
-    // console.log("what is redirect", redirect);
     if (redirect !== null) {
       const response = new Response(redirect.body);
       return response;
@@ -32,27 +28,34 @@ export async function handleRequest(event: FetchEvent): Promise<Response> {
     return tlsVersion;
   }
 
+  // check for 404 or temporarily offline and serve response
+  if (is404 !== null) {
+    return is404;
+  }
+
   const options: Partial<Options> = url.pathname.match(/json$/)
     ? {
         mapRequestToAsset: serveSinglePageApp,
         cacheControl: {
           browserTTL: 1,
         },
-        ASSET_NAMESPACE: "www-prod-static",
+        // ASSET_NAMESPACE: MY_FIRST_KV.get(),
       }
     : {
         mapRequestToAsset: serveSinglePageApp,
-        ASSET_NAMESPACE: "www-prod-static",
+        // ASSET_NAMESPACE: name,
       };
 
-  // check for 404 or temporarily offline
-  //   if (is404 !== null) {
-  //     return is404;
-  //   }
   try {
     const response = await getAssetFromKV(event, options);
+    if (headers !== null) {
+      headers.forEach((name, value) => {
+        response.headers.set(name, value);
+      });
+    }
     return response;
-  } catch {
+  } catch (e) {
+    // console.log("Error1:", e);
     try {
       let notFoundResponse = await getAssetFromKV(event, {
         mapRequestToAsset: () =>
@@ -64,7 +67,8 @@ export async function handleRequest(event: FetchEvent): Promise<Response> {
         status: 404,
       });
     } catch (e) {
-      console.log("Error:", e);
+      // console.log("Error2:", e);
+      return new Response("Not Found", { status: 404 });
     }
   }
 
