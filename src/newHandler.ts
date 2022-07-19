@@ -18,7 +18,7 @@ export async function handleRequest(event: FetchEvent): Promise<Response> {
   if (redirects !== null) {
     const redirect = redirectedResponse(req, redirects);
     if (redirect !== null) {
-      const response = new Response(redirect.body);
+      const response = new Response(redirect.body, { headers: headers });
       return response;
     }
   }
