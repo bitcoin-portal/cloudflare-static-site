@@ -4,8 +4,8 @@ export async function parseRedirects(
   event: FetchEvent
 ): Promise<Map<string, string>> {
   const redirectMap = new Map();
-  const REDIRECT =
-    "^/wallet-support/$=https://support.bitcoin.com/en/collections/2050805-wallet/;^/miami-conference/?$=https://www.bitcoin.com/events/";
+  // const REDIRECT =
+  //   "^/wallet-support/$=https://support.bitcoin.com/en/collections/2050805-wallet/;^/miami-conference/?$=https://www.bitcoin.com/events/";
 
   try {
     const redirects = REDIRECT.split(";");
