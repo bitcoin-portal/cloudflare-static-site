@@ -50,16 +50,30 @@ function serveSinglePageApp(request) {
   request = stripQueryString(request);
   request = mapRequestToAsset(request);
   var reactRouting = false;
+  var gatsbyRouting = false;
   try {
     if (REACT_ROUTING == "true") {
       reactRouting = true;
     }
+    if (GATSBY_ROUTING == "true") {
+      gatsbyRouting = true;
+    }
   } catch {}
   if (request.url.endsWith(".html") && reactRouting) {
     return new Request(`${new URL(request.url).origin}/index.html`, request);
-  } else {
-    return request;
   }
+  if (request.url.endsWith(".html") && gatsbyRouting) {
+    const { pathname, origin } = new URL(request.url);
+    const rootPage = pathname.split("/")[0];
+    const newRequest =
+      rootPage === "/"
+        ? `${origin}/index.html`
+        : `${origin}/${rootpage}/index.html`;
+
+    return new Request(newRequest, request);
+  }
+
+  return request;
 }
 
 async function addHeaders(req, response) {
