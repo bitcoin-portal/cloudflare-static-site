@@ -57,6 +57,15 @@ function serveSinglePageApp(request) {
   } catch {}
   if (request.url.endsWith(".html") && reactRouting) {
     return new Request(`${new URL(request.url).origin}/index.html`, request);
+  } else if (GATSBY_ROUTING == "true") {
+    const { pathname, origin } = new URL(request.url);
+    const rootPage = pathname.split("/")[0];
+    const newRequest =
+      rootPage === "/"
+        ? `${origin}/index.html`
+        : `${origin}/${rootpage}/index.html`;
+
+    return new Request(newRequest, request);
   } else {
     return request;
   }
